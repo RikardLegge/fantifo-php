@@ -37,12 +37,11 @@ $imagedata = array(
 	'000000',
 );
 
-$loop->addPeriodicTimer(10, function() use($server, $logger, $imagedata, &$framecounter){
+$clients = [];
 
-	$id = 0;
+$loop->addPeriodicTimer(1, function() use($server, $logger, $imagedata, &$clients, &$framecounter){
 
-    foreach($server->getConnections() as $client) {
-
+	foreach($clients as $id => $connections) {
     	$prev_index = ($id % 4) * 4 + (($framecounter - 1) % 4);
     	$index = ($id % 4) * 4 + ($framecounter % 4);
 
@@ -50,24 +49,40 @@ $loop->addPeriodicTimer(10, function() use($server, $logger, $imagedata, &$frame
     	$color = $imagedata[$index];
 
     	if($prev_color != $color){
-			$client->sendString($imagedata[$index]);
+			foreach($connections as $connection) {
+				$connection->sendString($imagedata[$index]);
+			}
     	}
-    	//$logger->notice("Index: $index");
-    	//$logger->notice("Image: $imagedata[$index]");
-    	//$logger->notice("Broadcasting time to all clients: $index");
-
-    	//$logger->notice("Frame: $framecounter");
-
-
-		$id++;
     }
 
     $framecounter++;
 });
 
 $server->on("connect", function($client) {
-	// Identify client here to figure out color
 	echo "Client connected\n";
+});
+
+// Right now we only receive one message from the client
+$server->on("message", function($client, $message) use(&$clients) {
+	$id = intval($message->getData());
+	if(isset($clients[$id]))
+		array_push($clients[$id], $client);
+	else
+		$clients[$id] = array($client);
+	echo "Client identified itself as $id\n";
+});
+
+$server->on("close", function($client) use(&$clients) {
+	// This is a bit convoluted but works
+	foreach($clients as $id => $connections) {
+		$key = array_search($connection, $connections);
+		if($key != FALSE) {
+			unset($connections[$key]);
+			echo "Removed client $key\n";
+		}
+	}
+
+	// TODO Kill empty id's
 });
 
 // Bind the server
@@ -75,6 +90,5 @@ $server->bind();
 
 // Start the event loop
 $loop->run();
-
 
 ?>
