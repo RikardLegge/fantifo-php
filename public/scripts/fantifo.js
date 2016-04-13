@@ -1,7 +1,13 @@
 var MessageType = {
+    // Server to client
     SYNC_SIGNAL: 1,
     START_SIGNAL: 2,
-    STOP_SIGNAL: 3
+    STOP_SIGNAL: 3,
+
+    // Client to server
+    REQUEST_SYNC_SIGNAL: 11
+    REQUEST_START_SIGNAL: 12,
+    REQUEST_STOP_SIGNAL: 13,
 };
 
 // var ImageStruct = {
@@ -53,7 +59,7 @@ FantifoClient.prototype.tick = function () {
 
     var time = nextFrame.time + this.absStartTime + fullLoopTime;
 
-    if (now > time) {
+    while (now > time) {
         var r = nextFrame.r;
         var g = nextFrame.g;
         var b = nextFrame.b;
@@ -97,7 +103,7 @@ FantifoClient.prototype.onMessage = function (event) {
 
 FantifoClient.prototype.testLatency = function () {
     var request = {
-        type: MessageType.SYNC_SIGNAL,
+        type: MessageType.REQUEST_SYNC_SIGNAL,
         timeStamp: Date.now()
     };
 
