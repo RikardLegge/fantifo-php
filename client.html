@@ -50,7 +50,12 @@
         }];
 
     var client = new FantifoClient($('#color'), frameList, host);
-    // client.connect();
+    // Uncomment this to test against the sync server
+    // client.connect(function(client) {
+    //     client.requestStart(Date.now() + 3000);
+    // });
+
+    // Comment this out when testing against the sync server
     client.absStartTime = Date.now() + 1000;
     client.tick();
 

@@ -5,7 +5,7 @@ var MessageType = {
     STOP_SIGNAL: 3,
 
     // Client to server
-    REQUEST_SYNC_SIGNAL: 11
+    REQUEST_SYNC_SIGNAL: 11,
     REQUEST_START_SIGNAL: 12,
     REQUEST_STOP_SIGNAL: 13,
 };
@@ -19,6 +19,7 @@ var MessageType = {
 
 function FantifoClient($target, frameList, host) {
     this.socket = null;
+    this.userOpenCallback = null;
 
     this.host = host;
     this.$target = $target;
@@ -36,16 +37,20 @@ function FantifoClient($target, frameList, host) {
     this.tickFunc = this.tick.bind(this);
 }
 
-FantifoClient.prototype.connect = function () {
+FantifoClient.prototype.connect = function (userOpenCallback) {
     this.socket = new WebSocket(this.host);
     this.socket.onopen = this.onOpenFunc;
     this.socket.onmessage = this.onMessageFunc;
+    if(typeof userOpenCallback !== 'undefined')
+        this.userOpenCallback = userOpenCallback;
 };
 
 FantifoClient.prototype.onOpen = function () {
     this.testLatency();
 
     setInterval(this.testLatencyFunc, 3000);
+    if(this.userOpenCallback !== null)
+        this.userOpenCallback(this);
 };
 
 FantifoClient.prototype.tick = function () {
@@ -81,13 +86,14 @@ FantifoClient.prototype.onMessage = function (event) {
 
     switch (data.type) {
         case MessageType.SYNC_SIGNAL:
-            console.log("SYNC");
             this.latency = (Date.now() - data.timeStamp) / 2;
             this.timeOffset = Date.now() - data.serverTimeStamp + this.latency;
+            console.log("SYNC: " + this.timeOffset);
 
             break;
         case MessageType.START_SIGNAL:
-            console.log("START");
+            console.log("START at " + data.when);
+            this.absStartTime = data.when;
             this.tick();
 
             break;
@@ -109,3 +115,12 @@ FantifoClient.prototype.testLatency = function () {
 
     this.socket.send(JSON.stringify(request));
 };
+
+FantifoClient.prototype.requestStart = function(when) {
+    var request = {
+        type: MessageType.REQUEST_START_SIGNAL,
+        adminToken: 'IAMADMIN',
+        when: when
+    };
+    this.socket.send(JSON.stringify(request));
+}

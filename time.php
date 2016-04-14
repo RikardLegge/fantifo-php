@@ -13,7 +13,7 @@ function main() {
 	$writer = new Zend\Log\Writer\Stream("php://output");
 	$logger->addWriter($writer);
 
-	$server = new SyncServer("tcp://0.0.0.0:12345", $loop, $logger);
+	$server = new SyncServer("tcp://0.0.0.0:12345", $loop, $logger, 'IAMADMIN');
 	$server->bind();
 
 	// Start the event loop
