@@ -10,6 +10,8 @@ var MessageType = {
     REQUEST_STOP_SIGNAL: 13,
 };
 
+var INVALID_FRAME_INDEX = -1;
+
 // var ImageStruct = {
 //     r: 0,
 //     g: 0,
@@ -28,8 +30,7 @@ function FantifoClient($target, frameList, host) {
 
     this.frameList = frameList;
     this.absStartTime = -1;
-    this.numAnimationLoops = 0;
-    this.nextFrameIndex = 0;
+    this.currentFrameIndex = INVALID_FRAME_INDEX;
 
     this.onMessageFunc = this.onMessage.bind(this);
     this.onOpenFunc = this.onOpen.bind(this);
@@ -53,29 +54,36 @@ FantifoClient.prototype.onOpen = function () {
         this.userOpenCallback(this);
 };
 
+FantifoClient.prototype.getCurrentFrameIndex = function (animTime) {
+    var len = this.frameList.length;
+    for(var i = 0; i < len; i++) {
+        var nextFrame = i + 1;
+        if(animTime >= this.frameList[i].time &&
+           animTime < this.frameList[nextFrame].time) {
+            return i;
+        }
+    }
+    return INVALID_FRAME_INDEX;
+}
+
 FantifoClient.prototype.tick = function () {
     var now = Date.now() - this.timeOffset;
     var $target = this.$target;
-    var nextFrame = this.frameList[this.nextFrameIndex];
 
-    // Allow loops through the array by compensating for completed loops
+    // Calculate animation time, then use that to calculate the current frame
     var singleLoopTime = this.frameList[this.frameList.length - 1].time;
-    var fullLoopTime = this.numAnimationLoops * singleLoopTime;
+    var animTime = (now - this.absStartTime) % singleLoopTime;
+    var currentFrameIndex = this.getCurrentFrameIndex(animTime);
 
-    var time = nextFrame.time + this.absStartTime + fullLoopTime;
-
-    while (now > time) {
-        var r = nextFrame.r;
-        var g = nextFrame.g;
-        var b = nextFrame.b;
+    if(currentFrameIndex != this.currentFrameIndex) {
+        var frame = this.frameList[currentFrameIndex];
+        var r = frame.r;
+        var g = frame.g;
+        var b = frame.b;
 
         $target.css('background', 'rgb(' + r + ',' + g + ',' + b + ')');
 
-        this.nextFrameIndex++;
-        if (this.nextFrameIndex >= this.frameList.length - 1) {
-            this.nextFrameIndex = 0;
-            this.numAnimationLoops++;
-        }
+        this.currentFrameIndex = currentFrameIndex;
     }
 
     requestAnimationFrame(this.tickFunc);
