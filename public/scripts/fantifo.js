@@ -12,14 +12,49 @@ var MessageType = {
 
 var INVALID_FRAME_INDEX = -1;
 
-// var ImageStruct = {
-//     r: 0,
-//     g: 0,
-//     b: 0,
-//     time: 0
-// }
+/**
+ * Empty generic callback
+ *
+ * @callback Callback
+ */
 
-function FantifoClient($target, frameList, host) {
+/**
+ * Callback for the send and recieve proxies
+ *
+ * @callback ProxyCallback
+ * @param {number}
+ */
+
+/**
+ * A timestamped frame to display on the scene
+ *
+ * @typedef {object} Frame
+ * @property {number} r - Amount of red 0-255
+ * @property {number} g - Amount of green 0-255
+ * @property {number} b - Amount of blue 0-255
+ * @property {number} time - Timestamp for when the frame is shown
+ */
+
+/**
+ * Fantifo Client parameters object
+ *
+ * @typedef {object} FantifoClientParams
+ * @property {ProxyCallback?} recieveProxy
+ * @property {ProxyCallback?} sendProxy
+ */
+
+/**
+ * Construct a new Fantifo client object
+ *
+ * @param {$} $target - The target for the animation
+ * @param {Frame[]} frameList - List of frames
+ * @param {string} host - The web socket host
+ * @param {FantifoClientParams?} opt_params - Optinal params for the client
+ *
+ */
+function FantifoClient($target, frameList, host, opt_params) {
+    var params = opt_params || {};
+
     this.socket = null;
     this.userOpenCallback = null;
 
@@ -36,13 +71,16 @@ function FantifoClient($target, frameList, host) {
     this.onOpenFunc = this.onOpen.bind(this);
     this.testLatencyFunc = this.testLatency.bind(this);
     this.tickFunc = this.tick.bind(this);
+
+    this.recieveProxy = params.recieveProxy;
+    this.sendProxy = params.sendProxy;
 }
 
 FantifoClient.prototype.connect = function (userOpenCallback) {
     this.socket = new WebSocket(this.host);
     this.socket.onopen = this.onOpenFunc;
     this.socket.onmessage = this.onMessageFunc;
-    if(typeof userOpenCallback !== 'undefined')
+    if (typeof userOpenCallback !== 'undefined')
         this.userOpenCallback = userOpenCallback;
 };
 
@@ -50,16 +88,16 @@ FantifoClient.prototype.onOpen = function () {
     this.testLatency();
 
     setInterval(this.testLatencyFunc, 3000);
-    if(this.userOpenCallback !== null)
+    if (this.userOpenCallback !== null)
         this.userOpenCallback(this);
 };
 
 FantifoClient.prototype.getCurrentFrameIndex = function (animTime) {
     var len = this.frameList.length;
-    for(var i = 0; i < len; i++) {
+    for (var i = 0; i < len; i++) {
         var nextFrame = i + 1;
-        if(animTime >= this.frameList[i].time &&
-           animTime < this.frameList[nextFrame].time) {
+        if (animTime >= this.frameList[i].time &&
+            animTime < this.frameList[nextFrame].time) {
             return i;
         }
     }
@@ -75,7 +113,7 @@ FantifoClient.prototype.tick = function () {
     var animTime = (now - this.absStartTime) % singleLoopTime;
     var currentFrameIndex = this.getCurrentFrameIndex(animTime);
 
-    if(currentFrameIndex != this.currentFrameIndex) {
+    if (currentFrameIndex != this.currentFrameIndex) {
         var frame = this.frameList[currentFrameIndex];
         var r = frame.r;
         var g = frame.g;
@@ -90,6 +128,17 @@ FantifoClient.prototype.tick = function () {
 };
 
 FantifoClient.prototype.onMessage = function (event) {
+    var _this = this;
+
+    this.recieveProxy ? this.recieveProxy(recieve) : recieve;
+
+    function recieve() {
+        _this.onMessageRecieved(event);
+    }
+}
+
+
+FantifoClient.prototype.onMessageRecieved = function (event) {
     var data = JSON.parse(event.data);
 
     switch (data.type) {
@@ -115,16 +164,26 @@ FantifoClient.prototype.onMessage = function (event) {
     }
 };
 
+FantifoClient.prototype.sendMessage = function (message) {
+    var _this = this;
+
+    this.sendProxy ? this.sendProxy(send) : send();
+
+    function send() {
+        _this.socket.send(message);
+    }
+}
+
 FantifoClient.prototype.testLatency = function () {
     var request = {
         type: MessageType.REQUEST_SYNC_SIGNAL,
         timeStamp: Date.now()
     };
 
-    this.socket.send(JSON.stringify(request));
+    this.sendMessage(JSON.stringify(request));
 };
 
-FantifoClient.prototype.requestStart = function(when) {
+FantifoClient.prototype.requestStart = function (when) {
     var request = {
         type: MessageType.REQUEST_START_SIGNAL,
         adminToken: 'IAMADMIN',
@@ -132,3 +191,16 @@ FantifoClient.prototype.requestStart = function(when) {
     };
     this.socket.send(JSON.stringify(request));
 }
+
+FantifoClient.RandomLatencyProxy = function (resolve) {
+    var maxLatency = FantifoClient.RandomLatencyProxy.maxLatency;
+    setTimeout(resolve, Math.random() * maxLatency);
+}
+FantifoClient.RandomLatencyProxy.maxLatency = 1000;
+
+FantifoClient.FixedLatencyProxy = function (resolve) {
+    var latency = FantifoClient.FixedLatencyProxy.latency;
+
+    setTimeout(resolve, latency);
+}
+FantifoClient.FixedLatencyProxy.latency = 1000;
