@@ -19,7 +19,7 @@ var INVALID_FRAME_INDEX = -1;
  */
 
 /**
- * Callback for the send and recieve proxies
+ * Callback for the send and receive proxies
  *
  * @callback ProxyCallback
  * @param {number}
@@ -39,7 +39,7 @@ var INVALID_FRAME_INDEX = -1;
  * Fantifo Client parameters object
  *
  * @typedef {object} FantifoClientParams
- * @property {ProxyCallback?} recieveProxy
+ * @property {ProxyCallback?} receiveProxy
  * @property {ProxyCallback?} sendProxy
  */
 
@@ -72,7 +72,7 @@ function FantifoClient($target, frameList, host, opt_params) {
     this.testLatencyFunc = this.testLatency.bind(this);
     this.tickFunc = this.tick.bind(this);
 
-    this.recieveProxy = params.recieveProxy;
+    this.receiveProxy = params.receiveProxy;
     this.sendProxy = params.sendProxy;
 }
 
@@ -130,15 +130,15 @@ FantifoClient.prototype.tick = function () {
 FantifoClient.prototype.onMessage = function (event) {
     var _this = this;
 
-    this.recieveProxy ? this.recieveProxy(recieve) : recieve;
+    this.receiveProxy ? this.receiveProxy(receive) : receive();
 
-    function recieve() {
-        _this.onMessageRecieved(event);
+    function receive() {
+        _this.onMessagereceived(event);
     }
 }
 
 
-FantifoClient.prototype.onMessageRecieved = function (event) {
+FantifoClient.prototype.onMessagereceived = function (event) {
     var data = JSON.parse(event.data);
 
     switch (data.type) {
