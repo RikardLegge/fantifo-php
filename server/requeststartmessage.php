@@ -6,7 +6,7 @@ class RequestStartMessage {
 		$this->when = $json->when;
 	}
 
-	public function handle($server) {
+	public function handle($server, $client) {
 		echo "Request start message received from admin\n";
 		$server->adminStart($this->adminToken, $this->when);
 	}

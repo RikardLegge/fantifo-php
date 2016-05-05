@@ -17,7 +17,7 @@ class SyncServer extends WebSocketServer {
 	public function onMessage($client, $rawMessage) {
 		try {
 			$message = Message::create($rawMessage->getData());
-			$message->handle($this);
+			$message->handle($this, $client);
 		} catch(InvalidMessageException $e) {
 			echo "Failed to process message: " . $e->getMessage() . "\n";
 		}

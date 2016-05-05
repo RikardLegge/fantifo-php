@@ -5,9 +5,9 @@ class RequestSyncMessage {
 		$this->timeStamp = $json->timeStamp;
 	}
 
-	public function handle($server) {
+	public function handle($server, $client) {
 		echo "Sync message received\n";
-		$server->broadcast(json_encode([
+		$client->sendString(json_encode([
 			'type'=> Message::SYNC_SIGNAL,
 			'timeStamp'=> $this->timeStamp,
 			'serverTimeStamp'=> $this->getServerTimeStamp()
