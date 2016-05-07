@@ -143,8 +143,9 @@ FantifoClient.prototype.onMessagereceived = function (event) {
 
     switch (data.type) {
         case MessageType.SYNC_SIGNAL:
-            this.latency = (Date.now() - data.timeStamp) / 2;
-            this.timeOffset = Date.now() - data.serverTimeStamp + this.latency;
+            var now = Date.now();
+            this.latency = (now - data.timeStamp) / 2;
+            this.timeOffset = now - (data.serverTimeStamp + this.latency);
             console.log("SYNC: " + this.timeOffset);
 
             break;
