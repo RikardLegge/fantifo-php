@@ -151,7 +151,7 @@ FantifoClient.prototype.onMessagereceived = function (event) {
             break;
         case MessageType.START_SIGNAL:
             console.log("START at " + data.when);
-            this.absStartTime = data.when;
+            this.absStartTime = data.when - this.timeOffset;
             this.tick();
 
             break;
