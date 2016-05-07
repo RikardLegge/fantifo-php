@@ -205,3 +205,11 @@ FantifoClient.FixedLatencyProxy = function (resolve) {
     setTimeout(resolve, latency);
 }
 FantifoClient.FixedLatencyProxy.latency = 1000;
+
+FantifoClient.RandomFixedLatencyProxy = function (maxLatency) {
+    var latency = Math.random() * maxLatency;
+    console.log("Generated latency " + latency);
+    return function (resolve) {
+        setTimeout(resolve, latency);
+    }
+}

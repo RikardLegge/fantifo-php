@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style type="text/css">
+        body, html {
+            height: 100%;
+            margin: 0;
+        }
+
+        #container {
+            width: 100%;
+        }
+
+        .color {
+            width: 40px;
+            height: 40px;
+            margin-right: 5px;
+            display: inline-block;
+            background: purple;
+        }
+    </style>
+</head>
+<body>
+    <form id="settings">
+        <label for="clientcount">Client count:</label>
+        <input id="clientcount" type="number" name="clientcount">
+        <input id="submit" type="submit" value="Create">
+        <input id="start" type="button" value="Start sequence">
+    </form>
+	<div>Connected clients: <span id="counter">0</span></div>
+
+    <div id="container"></div>
+    <div id="timeoffset"></div>
+
+<script src="https://code.jquery.com/jquery-2.2.3.js" integrity="sha256-laXWtGydpwqJ8JA+X9x2miwmaiKhn8tVmOVEigRNtP4="
+        crossorigin="anonymous"></script>
+<script src="scripts/fantifo.js"></script>
+<script>
+    var host = "ws://" + window.location.hostname + ":12345";
+    var frameList = [{
+            r: 255,
+            g: 0,
+            b: 0,
+            time: 0
+        }, {
+            r: 0,
+            g: 255,
+            b: 0,
+            time: 1000
+        }, {
+            r: 0,
+            g: 0,
+            b: 255,
+            time: 2000
+        },
+        {
+            r: 0,
+            g: 0,
+            b: 0,
+            time: 3000
+        }];
+
+    var adminClient = null;
+    var connectedClients = 0;
+    var clients = [];
+
+    function spawnClients(clientCount) {
+        connectedClients = 0;
+        clients = [];
+        updateClientCount();
+        var container = $('#container');
+        var timeoffsets = $('#timeoffset');
+        container.empty();
+        timeoffsets.empty();
+        for (var i = 0; i < clientCount; i++) {
+            container.append('<div id="client-' + i + '" class="color"></div>');
+            timeoffsets.append('<div id="offset-' + i + '"></div>');
+            if (i == 0) {
+                // First client is always a "real" client
+                var client = new FantifoClient($('#client-' + i), frameList, host);
+            } else {
+                // The following clients uses a random delay to simulate latency
+                var proxy = FantifoClient.RandomFixedLatencyProxy(2000);
+                var client = new FantifoClient(
+                        $('#client-' + i),
+                        frameList,
+                        host,
+                        { receiveProxy: proxy, sendProxy: proxy }
+                    );
+            }
+            client.connect(function() {
+                connectedClients++;
+                updateClientCount();
+            });
+            clients.push(client);
+            if (adminClient == null)
+                adminClient = client;
+        }
+    }
+
+    function updateClientCount() {
+        $('#counter').text(connectedClients);
+    }
+
+    function updateOffsets() {
+        var now = Date.now();
+        for (var i = 0; i < clients.length; i++) {
+            var timestamp = new Date(now - clients[i].timeOffset);
+            $('#offset-' + i).text(i + ' servertime: ' + timestamp.getSeconds() + ':'
+                    + timestamp.getMilliseconds() + ' offset: ' + clients[i].timeOffset);
+        }
+    }
+
+    $(document).ready(function() {
+        $('#settings').submit(function() {
+            var count = parseInt($('#clientcount').val());
+            spawnClients(count);
+            return false;
+        });
+
+        $('#start').click(function() {
+            adminClient.requestStart(Date.now() + 3000);
+        });
+
+        setInterval(updateOffsets, 500);
+    });
+</script>
+</body>
+</html>
+
