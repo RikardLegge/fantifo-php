@@ -1,3 +1,5 @@
+// BUG: NOT TESTED
+
 declare type $ = any;
 declare type FantifoProxy = (callback:() => void) => void
 
